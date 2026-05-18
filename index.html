@@ -1,0 +1,1011 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Home Buyer AI Assistant</title>
+    <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <script src="https://unpkg.com/@babel/standalone@7.24.4/babel.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'cyan-500': '#06B6D4',
+                        'cyan-600': '#0891B2',
+                        'teal-700': '#0F766E',
+                        'teal-600': '#0D9488',
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="bg-gray-50">
+    <div id="root"></div>
+    <script type="text/babel">
+        // --- REACT GLOBALS ---
+        const { useState, useEffect, useRef } = React;
+
+        // --- API CONFIGURATION (THE MISSING PIECE) ---
+        // ARCHITECT INSTRUCTION: Paste your API Key inside the quotes below to activate Real Mode.
+        // Leave it empty "" to run in Simulation Mode (Free/Safe).
+        const API_KEY = ""; 
+        const GEMINI_API_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent";
+
+        // --- ICONS (Inline SVGs) ---
+        const IconWrapper = ({ children, className }) => (
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+                {children}
+            </svg>
+        );
+
+        const Home = ({ className }) => <IconWrapper className={className}><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></IconWrapper>;
+        const AlertTriangle = ({ className }) => <IconWrapper className={className}><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><path d="M12 9v4"/><path d="M12 17h.01"/></IconWrapper>;
+        const CheckCircle = ({ className }) => <IconWrapper className={className}><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></IconWrapper>;
+        const MapPin = ({ className }) => <IconWrapper className={className}><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></IconWrapper>;
+        const DollarSign = ({ className }) => <IconWrapper className={className}><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></IconWrapper>;
+        const X = ({ className }) => <IconWrapper className={className}><path d="M18 6 6 18"/><path d="m6 6 12 12"/></IconWrapper>;
+        const ChevronDown = ({ className }) => <IconWrapper className={className}><path d="m6 9 6 6 6-6"/></IconWrapper>;
+        const User = ({ className }) => <IconWrapper className={className}><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></IconWrapper>;
+        const Briefcase = ({ className }) => <IconWrapper className={className}><rect width="20" height="14" x="2" y="7" rx="2" ry="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></IconWrapper>;
+        const Building = ({ className }) => <IconWrapper className={className}><rect width="16" height="20" x="4" y="2" rx="2" ry="2"/><path d="M9 22v-4h6v4"/><path d="M8 6h.01"/><path d="M16 6h.01"/><path d="M8 10h.01"/><path d="M16 10h.01"/><path d="M8 14h.01"/><path d="M16 14h.01"/><path d="M8 18h.01"/><path d="M16 18h.01"/></IconWrapper>;
+        const BrainCircuit = ({ className }) => <IconWrapper className={className}><path d="M12 5a3 3 0 1 0-5.997.125 4 4 0 0 0-2.526 5.77 4 4 0 0 0 .556 6.588A4 4 0 1 0 12 18Z"/><path d="M9 13a4.5 4.5 0 0 0 3-4"/><path d="M6.003 5.125A3 3 0 0 0 6.401 6.5"/><path d="M3.477 10.896a4 4 0 0 1 .585-.396"/><path d="M6 18a4 4 0 0 1-1.97-3.484"/><path d="M12 18a4 4 0 0 0 1.97-3.484"/><path d="M20.523 10.896a4 4 0 0 0-.585-.396"/><path d="M17.599 6.5a3 3 0 0 0 .399-1.375"/><path d="M12 5a3 3 0 1 1 5.997.125 4 4 0 0 1 2.526 5.77 4 4 0 0 1-.556 6.588A4 4 0 1 1 12 18Z"/><path d="M15 13a4.5 4.5 0 0 1-3-4"/></IconWrapper>;
+        const ShieldAlert = ({ className }) => <IconWrapper className={className}><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10"/><line x1="12" x2="12" y1="8" y2="12"/><line x1="12" x2="12.01" y1="16" y2="16"/></IconWrapper>;
+        const Bath = ({ className }) => <IconWrapper className={className}><path d="M9 6 6.5 3.5a1.5 1.5 0 0 0-1-1"/><path d="M10.4 3.12a1.5 1.5 0 0 1-.88 0"/><path d="M13.12 4a1.5 1.5 0 0 1-1-.88"/><path d="M2 12c.6.5 1.2 1 2.5 1 2.5 0 2.5-2 5-2 2.6 0 3 2 6.5 2 2.3 0 2.5-1 4.2-1.4"/><path d="M7 21v-9a2 2 0 0 1 2-2h1a2 2 0 0 1 2 2v9"/><path d="M22 10v11"/></IconWrapper>;
+        const Lightbulb = ({ className }) => <IconWrapper className={className}><path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-1 1.5-2 1.5-3.5A6 6 0 0 0 6 8c0 1 .5 2 1.5 3.5.7.7 1.3 1.5 1.5 2.5"/><path d="M9 18h6"/><path d="M10 22h4"/></IconWrapper>;
+        const Loader2 = ({ className }) => <IconWrapper className={className}><path d="M21 12a9 9 0 1 1-6.219-8.56"/></IconWrapper>;
+        const ArrowRight = ({ className }) => <IconWrapper className={className}><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></IconWrapper>;
+        const ArrowLeft = ({ className }) => <IconWrapper className={className}><path d="m12 19-7-7 7-7"/><path d="M19 12H5"/></IconWrapper>;
+
+        // --- FORM DATA CONSTANTS ---
+        const INCOME_RANGES = [
+            "< $50,000",
+            "$50,000 - $80,000",
+            "$80,000 - $120,000",
+            "$120,000 - $180,000",
+            "$180,000 - $250,000",
+            "$250,000+"
+        ];
+
+        const CREDIT_RANGES = [
+            "< 620",
+            "620 - 679",
+            "680 - 739",
+            "740+"
+        ];
+
+        const PROPERTY_TYPES = ["Single-Family Home", "Townhouse / Condo", "Multi-Family (Duplex/Triplex)"];
+        const BEDROOMS = ["1+", "2+", "3+", "4+"];
+        const BATHROOMS = ["1+", "1.5+", "2+", "3+"];
+        const EMPLOYMENT_FOOTPRINTS = [
+            { label: 'Office-Based / Local', value: 'office' },
+            { label: 'Remote / Flexible', value: 'remote' }
+        ];
+
+        // --- MOCK INVENTORY (Expanded for Filtering) ---
+        const MOCK_INVENTORY = [
+            { id: 1, type: "Single-Family Home", city: "Coppell, TX", price: 450000, beds: 4, baths: 3, sqft: 2400, year: 2005, pool: false, garage: true, hoa: 350, agent: "Sarah Jenkins" },
+            { id: 2, type: "Single-Family Home", city: "Coppell, TX", price: 525000, beds: 4, baths: 3.5, sqft: 2800, year: 2012, pool: true, garage: true, hoa: 450, agent: "Mike Ross" },
+            { id: 3, type: "Townhouse", city: "Flower Mound, TX", price: 380000, beds: 3, baths: 2.5, sqft: 1900, year: 2018, pool: false, garage: true, hoa: 250, agent: "Jessica Pearson" },
+            { id: 4, type: "Single-Family Home", city: "Lewisville, TX", price: 320000, beds: 3, baths: 2, sqft: 1600, year: 1995, pool: false, garage: false, hoa: 0, agent: "Louis Litt" },
+            { id: 5, type: "Condo", city: "Dallas, TX", price: 290000, beds: 2, baths: 2, sqft: 1100, year: 2020, pool: true, garage: false, hoa: 500, agent: "Rachel Zane" },
+            { id: 6, type: "Multi-Family", city: "Plano, TX", price: 550000, beds: 5, baths: 4, sqft: 3200, year: 1980, pool: false, garage: true, hoa: 0, agent: "Harvey Specter" },
+        ];
+
+        // --- FHA KILL SWITCH KEYWORDS ---
+        const FORBIDDEN_KEYWORDS = [
+            'race', 'racial', 'ethnic', 'ethnicity', 'demographic',
+            'white', 'black', 'asian', 'hispanic', 'caucasian', 'african american',
+            'latin', 'latino', 'latina',
+            'christian', 'muslim', 'jewish', 'buddhist', 'hindu', 'religion', 'religious',
+            'lgbt', 'gay', 'straight', 'orientation',
+            'disabled', 'handicap',
+            'minority', 'majority', 'dominated', 'population'
+        ];
+
+        // --- Utility: Renders Markdown text (for legal document) ---
+        const MarkdownRenderer = ({ content }) => {
+            let html = content;
+            html = html.replace(/^# (.*$)/gim, '<h2 class="text-2xl font-bold mt-4 mb-4 text-gray-900">$1</h2>');
+            html = html.replace(/^### (.*$)/gim, '<h4 class="text-lg font-bold mt-4 mb-2 text-gray-800">$1</h4>');
+            html = html.replace(/^## (.*$)/gim, '<h3 class="text-xl font-bold mt-6 mb-3 text-gray-800">$1</h3>');
+            html = html.replace(/\*\*(.*?)\*\*/gim, '<strong>$1</strong>');
+            html = html.replace(/\*(.*?)\*/gim, '<em>$1</em>');
+            
+            html = html.replace(/^\* (.*$)/gim, '<li>$1</li>'); 
+            html = html.replace(/((?:<li>.*<\/li>\s*)+)/g, '<ul class="list-disc list-inside space-y-1 mb-4 pl-4">$1</ul>');
+
+            html = html.replace(/---/g, '<hr class="my-6 border-gray-300" />');
+
+            const blocks = html.split('\n\n');
+            html = blocks.map(block => {
+                if (block.startsWith('<ul') || block.startsWith('<h') || block.startsWith('<hr')) {
+                    return block;
+                }
+                if (block.startsWith('<li>')) {
+                    return `<ul class="list-disc list-inside space-y-1 mb-4 pl-4">${block}</ul>`;
+                }
+                return `<p class="text-sm leading-relaxed">${block.replace(/\n/g, '<br />')}</p>`;
+            }).join('');
+
+            html = html.replace(/Last Updated:.*$/gim, `<strong class="text-gray-700">Last Updated: ${new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</strong>`);
+
+            return <div dangerouslySetInnerHTML={{ __html: html }} className="text-gray-600 text-sm" />;
+        };
+
+
+        // --- LEGAL DOCUMENT CONTENT ---
+        const LEGAL_CONTENT = `
+# Terms of Service & Privacy Policy
+
+**Last Updated:** November 5, 2025
+
+Welcome to the First-Time Homeowner Navigator ("Service"). This Service is an AI-powered strategic assistant designed to help you organize and streamline the pre-search phase of your home-buying journey.
+
+By clicking "I Understand & Agree," you acknowledge that you have read, understood, and agree to be bound by these Terms of Service and our Privacy Policy.
+
+---
+
+## 1. Terms of Service
+
+### A. No Guarantee of Financial Outcomes & Inherent Limitations of AI
+This is our most important term. You acknowledge and agree that this Service is an informational tool with inherent limitations, and you assume all risk for its use.
+
+* **AI & LLM Limitations:** The Service is powered by a large language model (LLM) and grounded on public, open-source web data (e.g., Google Search). This data may be incomplete, inaccurate, or outdated. AI models are subject to limitations, including the possibility of **"hallucinations"** (generating plausible but incorrect information). We are not responsible for errors or omissions in the underlying data or the generated content.
+* **No Guarantee of Financial Deals:** We are not a financial broker. We are not responsible if you get a "bad deal," a **higher-than-expected interest rate**, or a **higher cost for a house** based on our suggestions. We do not guarantee the accuracy of any financial estimates, as market conditions change instantly.
+* **User's Due Diligence is Required:** You are **solely responsible** for conducting your own due diligence. Any financial decision you make is at your own risk. You **MUST** independently verify all information (prices, rates, school quality, location details) with qualified, licensed professionals (real estate agents, mortgage brokers, inspectors) before making any decision.
+* **Is NOT Responsible for Your Decisions:** We are not liable for any financial losses, overpayment for a property, unfavorable loan terms, or any other negative outcome resulting from your use of this Service, even if the information provided was incorrect or incomplete due to an AI limitation.
+
+### B. AI Assistant, Not a Licensed Advisor
+This Service is an informational tool, not a person or a licensed professional.
+
+* You agree that the Service **DOES NOT** provide licensed legal, financial, real estate, or tax advice.
+* All recommendations are automated and generated by an AI language model.
+* You **MUST** consult with qualified, licensed professionals (a real estate agent, a mortgage broker, a financial advisor, and/a legal professional) before making any financial commitments or decisions.
+
+### C. AI as a Time-Saving Research Assistant (Service Role)
+You acknowledge that the primary role of this Service is to **streamline your research process**, not to provide a final, guaranteed product.
+
+* **Value Proposition:** The Service's value is in providing a "better time-to-result ratio." It is designed to accelerate the work a human researcher would do manually (sifting data, comparing locations, filtering options).
+* **Process Helper, Not Decider:** The Service is a *helper* in your home search. It **DOES NOT** make the final decision for you, nor does it guarantee to find the "perfect" or "best" deal. Its suggestions are based *only* on the information you provide.
+
+### D. Fair Housing Act (FHA) Compliance & Bias-Free Policy
+We are deeply committed to upholding the Fair Housing Act and its principles.
+
+* **Objective Criteria Only:** The Service's recommendations are based **ONLY** on the objective, neutral criteria you provide (e.g., financial ranges, job profession, property type, tax priority, and requested amenities like "specific schools" or "cultural stores").
+* **No Protected Characteristics:** The Service **DOES NOT** and **WILL NOT** use or filter recommendations based on race, color, religion, sex, disability, familial status, or national origin.
+
+### E. Demographic Failsafe Policy
+As part of our commitment to FHA Compliance, our AI has a built-in failsafe.
+
+* **Strict Refusal:** The AI is **prohibited** from processing, interpreting, or displaying any data related to neighborhood or school demographics.
+* **User Responsibility:** If you ask the AI for this information, it will refuse and state this policy. We direct you to conduct your own independent research for such data on public, third-party sites (e.g., the U.S. Census Bureau). We do not provide links to these sites.
+
+### F. Third-Party Data & Real Estate Agents
+* **Third-Party Data:** The Service uses Google Search to ground its recommendations, which may pull information from various public sources (simulating data from Realtor.com, Yelp, Google Maps, etc.). We are not responsible for the accuracy of this third-Party data.
+* **Agent Connection:** The Service may provide the **NAME ONLY** of real estate agents associated with listings. We **DO NOT** provide their contact information. You are responsible for finding and verifying this information independently. We are not liable for any interactions you have with any third-party agent.
+
+## 2. Privacy Policy
+
+### A. Data We Collect (Anonymized Data)
+To provide the Service, we only collect the following **non-personal** information:
+
+* **Broad Financial Ranges:** (e.g., "Income $100k-$150k," "Credit Score 700-750").
+* **Anonymous Preferences:** (e.g., "4 Bedrooms," "Software Engineer," "Low Tax Priority").
+* **Anonymous Usage Data:** (e.g., which buttons are clicked) to improve the service.
+
+### B. Data We Explicitly DO NOT Collect
+We are not in the business of collecting your sensitive information. We **WILL NEVER** ask for:
+
+* **Personally Identifiable Information (PII):** Your name, physical address, email, or phone number.
+* **Specific Financials:** Your bank account numbers, social security number, or exact salary.
+
+### C. Data Storage & Deletion
+* Your anonymous session data (inputs and generated rationale) is only used for the duration of your session and to improve the model. We do not build a permanent personal profile of you.
+* All data is handled in accordance with the security policies of our cloud infrastructure providers.
+
+## 3. Acceptance of Terms
+By checking the box and clicking "I Understand & Agree," you confirm that you have been given the opportunity to read this entire document and that you agree to all terms, policies, and liability waivers contained within it.
+`;
+
+        // --- UI Components ---
+
+        const Button = ({ children, onClick, disabled = false, className = '', variant = 'primary' }) => {
+            const baseStyle = 'inline-flex items-center justify-center px-6 py-3 border border-transparent text-base font-medium rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 transition-colors duration-150';
+            const styles = {
+                // --- NEW AQUA PRIMARY ---
+                primary: disabled
+                    ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                    : 'bg-cyan-500 text-white hover:bg-cyan-600 focus:ring-cyan-500',
+                // --- NEW LIGHT SECONDARY ---
+                secondary: 'bg-gray-100 text-gray-700 border border-gray-300 hover:bg-gray-200 focus:ring-cyan-500',
+                danger: 'bg-red-600 text-white hover:bg-red-700 focus:ring-red-500',
+                link: 'bg-transparent text-cyan-600 hover:text-cyan-500 !p-1 !shadow-none'
+            };
+            return (
+                <button
+                    onClick={onClick}
+                    disabled={disabled}
+                    className={`${baseStyle} ${styles[variant]} ${className}`}
+                >
+                    {children}
+                </button>
+            );
+        };
+
+        const InputSelect = ({ label, options, value, onChange, placeholder, icon: Icon }) => (
+            <div className="mb-4">
+                <label className="block text-sm font-medium text-gray-700 mb-1">{label}</label>
+                <div className="relative">
+                    {Icon && <Icon className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />}
+                    <select
+                        value={value}
+                        onChange={(e) => onChange(e.target.value)}
+                        className={`block w-full pl-10 pr-10 py-3 text-base bg-white border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-cyan-500 focus:border-cyan-500 ${!value ? 'text-gray-400' : 'text-gray-900'}`}
+                    >
+                        <option value="" disabled>{placeholder}</option>
+                        {options.map((option) => (
+                            <option key={option} value={option}>{option}</option>
+                        ))}
+                    </select>
+                    <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                </div>
+            </div>
+        );
+
+        const InputText = ({ label, value, onChange, placeholder, icon: Icon }) => (
+            <div className="mb-4">
+                <label className="block text-sm font-medium text-gray-700 mb-1">{label}</label>
+                <div className="relative">
+                    {Icon && <Icon className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />}
+                    <input
+                        type="text"
+                        value={value}
+                        onChange={(e) => onChange(e.target.value)}
+                        placeholder={placeholder}
+                        className="block w-full pl-10 pr-4 py-3 text-base bg-white border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-cyan-500 focus:border-cyan-500"
+                    />
+                </div>
+            </div>
+        );
+
+        const RadioGroup = ({ label, options, value, onChange }) => (
+            <div className="mb-4">
+                <label className="block text-sm font-medium text-gray-700 mb-2">{label}</label>
+                <div className="flex flex-col sm:flex-row sm:space-x-4 space-y-2 sm:space-y-0">
+                    {options.map((option) => (
+                        <label key={option.value} className={`flex-1 flex items-center px-4 py-3 border rounded-lg shadow-sm cursor-pointer transition-colors ${value === option.value ? 'bg-cyan-50 border-cyan-500' : 'bg-white border-gray-300 hover:bg-gray-50'}`}>
+                            <input
+                                type="radio"
+                                name={label}
+                                value={option.value}
+                                checked={value === option.value}
+                                onChange={(e) => onChange(e.target.value)}
+                                className="h-4 w-4 text-cyan-600 border-gray-300 focus:ring-cyan-500"
+                            />
+                            <span className="ml-3 text-sm font-medium text-gray-800">{option.label}</span>
+                        </label>
+                    ))}
+                </div>
+            </div>
+        );
+
+        const Checkbox = ({ label, checked, onChange, id }) => (
+            <div className="flex items-center">
+                <input
+                    id={id}
+                    type="checkbox"
+                    checked={checked}
+                    onChange={(e) => onChange(e.target.checked)}
+                    className="h-4 w-4 text-cyan-600 bg-white border-gray-300 rounded focus:ring-cyan-500"
+                />
+                <label htmlFor={id} className="ml-2 block text-sm font-medium text-gray-700">
+                    {label}
+                </label>
+            </div>
+        );
+
+
+        const LegalModal = ({ content, onClose, onAccept }) => {
+            const [scrolledToBottom, setScrolledToBottom] = useState(false);
+            const scrollRef = useRef(null);
+
+            const handleScroll = () => {
+                const { scrollTop, scrollHeight, clientHeight } = scrollRef.current;
+                if (scrollTop + clientHeight >= scrollHeight - 30) {
+                    setScrolledToBottom(true);
+                }
+            };
+
+            return (
+                <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center p-4 z-50 animate-fadeIn">
+                    <div className="bg-white rounded-xl shadow-2xl max-w-2xl w-full max-h-[80vh] flex flex-col overflow-hidden border border-gray-200">
+                        <header className="p-5 border-b border-gray-200 flex justify-between items-center">
+                            <h3 className="text-xl font-bold text-cyan-700">Terms of Service & Privacy Policy</h3>
+                            <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
+                                <X className="w-6 h-6" />
+                            </button>
+                        </header>
+
+                        <div
+                            ref={scrollRef}
+                            onScroll={handleScroll}
+                            className="p-6 overflow-y-auto flex-grow bg-white text-left" 
+                        >
+                            <MarkdownRenderer content={LEGAL_CONTENT} />
+                            <div className="h-10"></div>
+                        </div>
+
+                        <footer className="p-5 flex justify-end space-x-3 bg-gray-50 border-t border-gray-200">
+                            <Button
+                                onClick={onAccept}
+                                disabled={!scrolledToBottom}
+                                className="w-full sm:w-auto"
+                            >
+                                {scrolledToBottom ? 'I Understand & Agree' : 'Scroll to Read Full Document'}
+                            </Button>
+                        </footer>
+                    </div>
+                </div>
+            );
+        };
+
+        // --- STAGE COMPONENTS ---
+
+        const WelcomeScreen = ({ onNext, onAcceptLegal, legalAccepted }) => {
+            const [isModalOpen, setIsModalOpen] = useState(false);
+
+            const QuestStep = ({ icon: Icon, title, description }) => (
+                <div className="flex items-start space-x-4">
+                    <div className="flex-shrink-0 w-12 h-12 flex items-center justify-center bg-cyan-50 text-cyan-600 rounded-full">
+                        <Icon className="w-6 h-6" />
+                    </div>
+                    <div>
+                        <h4 className="font-semibold text-lg text-gray-900">{title}</h4>
+                        <p className="text-gray-600">{description}</p>
+                    </div>
+                </div>
+            );
+
+            return (
+                <div className="text-center p-6 sm:p-10">
+                    {/* --- ICONS ARE NOW SEA GREEN --- */}
+                    <Home className="w-16 h-16 mx-auto text-teal-600 mb-4" /> 
+                    {/* --- TEXT IS NOW AQUA/SEA GREEN --- */}
+                    <h1 className="text-3xl font-bold text-teal-700 mb-3">Stop Guessing. Start Strategizing.</h1>
+                    <p className="text-lg text-gray-600 mb-8 max-w-xl mx-auto">
+                        The housing market is a game. Here's your AI cheat code. Find your perfect spot in 5 minutes.
+                    </p>
+
+                    <div className="max-w-xl mx-auto mb-10 text-left border-t border-gray-200 pt-10 mt-10">
+                        <h3 className="text-2xl font-semibold text-gray-900 mb-6 text-center">Your 3-Step Strategy Quest</h3>
+                        <div className="space-y-6">
+                            <QuestStep
+                                icon={User}
+                                title="1. Build Your Anonymous Profile"
+                                description="Tell us your (anonymous) financial ranges, career goals, and 'must-have' lifestyle needs."
+                            />
+                            <QuestStep
+                                icon={BrainCircuit}
+                                title="2. Get Your AI Strategy"
+                                description="Our AI analyzes market data, job viability, and local amenities to generate an objective 'Strategic Profile' (e.g., 'A 4BR Home in North Dallas')."
+                            />
+                            <QuestStep
+                                icon={MapPin}
+                                title="3. Refine & Connect"
+                                description="Review mock listings, refine your search with our AI chat, and get the agent's name for you to connect independently."
+                            />
+                        </div>
+                    </div>
+
+                    <div className="max-w-xl mx-auto mt-10 pt-10 border-t border-gray-200">
+                        <blockquote className="text-center">
+                            <p className="text-2xl font-medium text-gray-700 italic">
+                                "Average user saves <span className="text-cyan-600">18+ hours</span> of manual research."
+                            </p>
+                        </blockquote>
+                    </div>
+
+
+                    <div className="max-w-xl mx-auto mb-8 mt-12">
+                        <Button
+                            onClick={() => setIsModalOpen(true)}
+                            className="w-full mb-4"
+                            variant="secondary"
+                        >
+                            Review Legal Documents (Required)
+                        </Button>
+
+                        <Button
+                            onClick={onNext}
+                            disabled={!legalAccepted}
+                            className="w-full"
+                        >
+                            {legalAccepted ? "Build My Strategy" : "Please Review Legal Documents First"}
+                            <ArrowRight className="w-5 h-5 ml-2" />
+                        </Button>
+                    </div>
+
+                    {isModalOpen && (
+                        <LegalModal
+                            content={LEGAL_CONTENT}
+                            onClose={() => setIsModalOpen(false)}
+                            onAccept={() => {
+                                onAcceptLegal();
+                                setIsModalOpen(false);
+                            }}
+                        />
+                    )}
+                </div>
+            );
+        };
+
+        const FinancialInput = ({ formData, handleChange, onBack, onNext }) => {
+            const [hasSecondaryIncome, setHasSecondaryIncome] = useState(!!formData.secondaryIncomeRange);
+
+            const isFormValid =
+                formData.primaryIncomeRange &&
+                formData.creditScore &&
+                formData.employmentFootprint &&
+                formData.primaryCompany &&
+                formData.primaryRole &&
+                (!hasSecondaryIncome || (
+                    formData.secondaryIncomeRange &&
+                    formData.secondaryEmploymentFootprint &&
+                    formData.secondaryCompany &&
+                    formData.secondaryRole
+                ));
+
+            const handleNext = () => {
+                if (isFormValid) {
+                    onNext();
+                }
+            };
+            
+            useEffect(() => {
+                if (!hasSecondaryIncome) {
+                    handleChange('secondaryIncomeRange', '');
+                    handleChange('secondaryEmploymentFootprint', '');
+                    handleChange('secondaryRole', '');
+                    handleChange('secondaryCompany', '');
+                }
+            }, [hasSecondaryIncome, handleChange]);
+
+            return (
+                <div className="p-6 sm:p-10">
+                    <h2 className="text-2xl font-bold text-gray-900 mb-2">Step 2: Financial & Career Details</h2>
+                    <p className="text-gray-600 mb-6">All information is anonymous and used to build your strategic profile.</p>
+
+                    <div className="space-y-4">
+                        <h3 className="text-lg font-semibold text-teal-600 border-b border-gray-200 pb-2">Your Profile (Primary)</h3>
+                        <InputSelect
+                            label="Primary Household Income*"
+                            options={INCOME_RANGES}
+                            value={formData.primaryIncomeRange}
+                            onChange={(val) => handleChange('primaryIncomeRange', val)}
+                            placeholder="Select your income range..."
+                            icon={DollarSign}
+                        />
+                        <InputSelect
+                            label="Estimated Credit Score*"
+                            options={CREDIT_RANGES}
+                            value={formData.creditScore}
+                            onChange={(val) => handleChange('creditScore', val)}
+                            placeholder="Select your credit score range..."
+                            icon={CheckCircle}
+                        />
+                        <RadioGroup
+                            label="Employment Footprint*"
+                            options={EMPLOYMENT_FOOTPRINTS}
+                            value={formData.employmentFootprint}
+                            onChange={(val) => handleChange('employmentFootprint', val)}
+                        />
+                        <InputText
+                            label="Company Name*"
+                            value={formData.primaryCompany}
+                            onChange={(val) => handleChange('primaryCompany', val)}
+                            placeholder="e.g., Cisco, HCA Healthcare, or 'Remote'"
+                            icon={Building}
+                        />
+                        <InputText
+                            label="Department / Role*"
+                            value={formData.primaryRole}
+                            onChange={(val) => handleChange('primaryRole', val)}
+                            placeholder="e.g., Sales, Software Engineer, Nurse"
+                            icon={Briefcase}
+                        />
+
+                        <h3 className="text-lg font-semibold text-teal-600 border-b border-gray-200 pb-2 pt-4">Household</h3>
+                        <Checkbox
+                            id="secondary-income-checkbox"
+                            label="I have a secondary household income (e.g., spouse)"
+                            checked={hasSecondaryIncome}
+                            onChange={setHasSecondaryIncome}
+                        />
+
+                        {hasSecondaryIncome && (
+                            <div className="pl-4 border-l-4 border-cyan-300 space-y-4 pt-4 animate-fadeIn">
+                                <InputSelect
+                                    label="Secondary Income Range*"
+                                    options={INCOME_RANGES}
+                                    value={formData.secondaryIncomeRange}
+                                    onChange={(val) => handleChange('secondaryIncomeRange', val)}
+                                    placeholder="Select secondary income..."
+                                    icon={DollarSign}
+                                />
+                                <RadioGroup
+                                    label="Secondary Employment Footprint*"
+                                    options={EMPLOYMENT_FOOTPRINTS}
+                                    value={formData.secondaryEmploymentFootprint}
+                                    onChange={(val) => handleChange('secondaryEmploymentFootprint', val)}
+                                />
+                                <InputText
+                                    label="Secondary Company Name*"
+                                    value={formData.secondaryCompany}
+                                    onChange={(val) => handleChange('secondaryCompany', val)}
+                                    placeholder="e.g., Microsoft, 'Remote', or N/A"
+                                    icon={Building}
+                                />
+                                <InputText
+                                    label="Secondary Department / Role*"
+                                    value={formData.secondaryRole}
+                                    onChange={(val) => handleChange('secondaryRole', val)}
+                                    placeholder="e.g., Marketing, Educator"
+                                    icon={User}
+                                />
+                            </div>
+                        )}
+                    </div>
+
+                    <div className="flex justify-between mt-10">
+                        <Button onClick={onBack} variant="secondary">
+                            <ArrowLeft className="w-5 h-5 mr-2" />
+                            Back
+                        </Button>
+                        <Button onClick={handleNext} disabled={!isFormValid}>
+                            Proceed to Lifestyle
+                            <ArrowRight className="w-5 h-5 ml-2" />
+                        </Button>
+                    </div>
+                </div>
+            );
+        };
+
+        const LifestyleInput = ({ formData, handleChange, onBack, onNext }) => {
+            const [fhaError, setFhaError] = useState('');
+
+            const checkForFHAKeywords = (text) => {
+                const lowerText = text.toLowerCase();
+                for (const keyword of FORBIDDEN_KEYWORDS) {
+                    if (lowerText.includes(keyword)) {
+                        return true;
+                    }
+                }
+                return false;
+            };
+
+            const isFormValid =
+                formData.propertyType &&
+                formData.bedrooms &&
+                formData.bathrooms &&
+                formData.communityNeeds.length >= 50; 
+
+            const handleNext = () => {
+                if (checkForFHAKeywords(formData.communityNeeds)) {
+                    setFhaError("Your request contains terms related to demographics or protected classes. This search cannot be processed. Please remove these terms to continue.");
+                    return;
+                }
+                setFhaError('');
+                if (isFormValid) {
+                    onNext();
+                }
+            };
+
+            return (
+                <div className="p-6 sm:p-10">
+                    <h2 className="text-2xl font-bold text-gray-900 mb-2">Step 3: Your "Must-Haves"</h2>
+                    <p className="text-gray-600 mb-6">Define your deal-breakers. This is what makes your strategy unique.</p>
+
+                    <div className="space-y-4">
+                        <h3 className="text-lg font-semibold text-teal-600 border-b border-gray-200 pb-2">Property Basics*</h3>
+                        <RadioGroup
+                            label="Housing Type"
+                            options={PROPERTY_TYPES.map(p => ({ label: p, value: p }))}
+                            value={formData.propertyType}
+                            onChange={(val) => handleChange('propertyType', val)}
+                        />
+                        <div className="flex space-x-4">
+                            <div className="flex-1">
+                                <InputSelect
+                                    label="Minimum Bedrooms"
+                                    options={BEDROOMS}
+                                    value={formData.bedrooms}
+                                    onChange={(val) => handleChange('bedrooms', val)}
+                                    placeholder="Select..."
+                                    icon={Home}
+                                />
+                            </div>
+                            <div className="flex-1">
+                                <InputSelect
+                                    label="Minimum Bathrooms"
+                                    options={BATHROOMS}
+                                    value={formData.bathrooms}
+                                    onChange={(val) => handleChange('bathrooms', val)}
+                                    placeholder="Select..."
+                                    icon={Bath}
+                                />
+                            </div>
+                        </div>
+
+                        <h3 className="text-lg font-semibold text-teal-600 border-b border-gray-200 pb-2 pt-4">Payment Strategy (Optional)</h3>
+                        <p className="text-sm text-gray-600 -mt-2 mb-3">Prioritize these factors in your recommendation.</p>
+                        <div className="space-y-3">
+                            <Checkbox
+                                id="low-tax-priority"
+                                label="Prioritize Low Property Taxes"
+                                checked={formData.lowTaxPriority}
+                                onChange={(val) => handleChange('lowTaxPriority', val)}
+                            />
+                            <Checkbox
+                                id="low-hoa-priority"
+                                label="Prioritize Low HOA Fees"
+                                checked={formData.lowHoaPriority}
+                                onChange={(val) => handleChange('lowHoaPriority', val)}
+                            />
+                            <Checkbox
+                                id="low-utilities-priority"
+                                label="Prioritize Low Utility Costs"
+                                checked={formData.lowUtilitiesPriority}
+                                onChange={(val) => handleChange('lowUtilitiesPriority', val)}
+                            />
+                        </div>
+
+
+                        <h3 className="text-lg font-semibold text-teal-600 border-b border-gray-200 pb-2 pt-4">Community Needs (The "Why")*</h3>
+                        <div className="mb-4">
+                            <label htmlFor="community-needs" className="block text-sm font-medium text-gray-700 mb-1">
+                                Your "Must-Have" List (Min. 50 characters)
+                            </label>
+                            <textarea
+                                id="community-needs"
+                                value={formData.communityNeeds}
+                                onChange={(e) => handleChange('communityNeeds', e.target.value)}
+                                placeholder="Be specific! e.g., 'Must be near Coppell High School, have 3+ Indian grocery stores, and a quiet neighborhood.'"
+                                className={`block w-full p-4 text-base bg-white border rounded-lg shadow-sm text-gray-900 focus:outline-none focus:ring-cyan-500 ${fhaError ? 'border-red-500 focus:border-red-500' : 'border-gray-300 focus:border-cyan-500'}`}
+                                rows="4"
+                            />
+                            <p className="text-xs text-gray-500 mt-1">
+                                {formData.communityNeeds.length} / 50 characters minimum
+                            </p>
+                            {fhaError && (
+                                <div className="mt-2 flex items-start space-x-2 text-red-600 animate-fadeIn">
+                                    <ShieldAlert className="w-5 h-5 flex-shrink-0" />
+                                    <p className="text-sm font-medium">{fhaError}</p>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                    
+                    <div className="flex justify-between mt-10">
+                        <Button onClick={onBack} variant="secondary">
+                            <ArrowLeft className="w-5 h-5 mr-2" />
+                            Back
+                        </Button>
+                        <Button onClick={handleNext} disabled={!isFormValid && !!fhaError}>
+                            Generate My Strategy
+                            <ArrowRight className="w-5 h-5 ml-2" />
+                        </Button>
+                    </div>
+                </div>
+            );
+        };
+
+
+        const StrategicProfile = ({ formData, onNext, onBack }) => {
+            const [loading, setLoading] = useState(true);
+            const [rationale, setRationale] = useState(null);
+            const [error, setError] = useState(null);
+
+            useEffect(() => {
+                const generateRationale = async () => {
+                    setLoading(true);
+                    setError(null);
+
+                    // --- MEGA PROMPT CONSTRUCTION ---
+                    const userQuery = `
+                        ACT AS: Senior Real Estate Strategist & Data Analyst.
+                        TASK: Generate a "Strategic Profile" for a home buyer based on the inputs below.
+                        
+                        USER INPUTS:
+                        1. FINANCIAL:
+                           - Primary Income: ${formData.primaryIncomeRange}
+                           - Credit Score: ${formData.creditScore}
+                           - Tax Priority: ${formData.lowTaxPriority ? 'Strict Low Tax Preference' : 'Standard'}
+                           - HOA Priority: ${formData.lowHoaPriority ? 'Strict Low HOA Preference' : 'Standard'}
+                           - Utilities Priority: ${formData.lowUtilitiesPriority ? 'Low Utilities Preference' : 'Standard'}
+                        
+                        2. CAREER (CRITICAL):
+                           - Primary: ${formData.primaryRole} at ${formData.primaryCompany} (${formData.employmentFootprint})
+                           ${formData.secondaryIncomeRange ? `- Secondary: ${formData.secondaryRole} at ${formData.secondaryCompany} (${formData.secondaryEmploymentFootprint})` : ''}
+                        
+                        3. PROPERTY:
+                           - Type: ${formData.propertyType}
+                           - Min Beds: ${formData.bedrooms}
+                           - Min Baths: ${formData.bathrooms}
+                        
+                        4. COMMUNITY NEEDS (THE "WHY" - HIGH PRIORITY):
+                           "${formData.communityNeeds}"
+
+                        SYSTEM INSTRUCTIONS:
+                        1. ANALYZE AFFORDABILITY: Cross-reference income ranges with current interest rates and median home prices in viable locations.
+                        2. ANALYZE CAREER VIABILITY: Prioritize locations with proximity to the stated Employer Office (if "Office-Based") or high industry density.
+                        3. ANALYZE LIFESTYLE: Find specific suburbs/cities that strictly match the "Community Needs" (e.g., school districts, specific cultural amenities).
+                        4. FAILSAFE (FHA): DO NOT mention race, religion, or demographics. Use objective proxies only (amenity counts, school scores).
+                        5. OUTPUT FORMAT (STRICT JSON):
+                           Return ONLY a raw JSON object (no markdown formatting). The JSON must have these exact keys:
+                           {
+                             "profileName": "A catchy title for this strategy",
+                             "financialViability": "A detailed assessment of their budget vs market reality",
+                             "locationRecommendation": "Specific Cities/Suburbs",
+                             "rationale": "A comprehensive paragraph explaining WHY this location matches their Career, Money, and Lifestyle needs.",
+                             "sources": [{"title": "Source Name", "uri": "URL"}]
+                           }
+                    `;
+
+                    // --- LOGGING FOR ARCHITECT VERIFICATION ---
+                    console.log("--- GENERATED MEGA-PROMPT (PHASE 1) ---");
+                    console.log(userQuery);
+                    console.log("---------------------------------------");
+
+                    // --- REAL API CALL (With Fallback) ---
+                    try {
+                        let responseData;
+                        
+                        // NEW: Direct connection to your local Python Backend
+                        const response = await fetch("https://3rr44r2bpnmi4b3uvfeotk35gu0yvbbc.lambda-url.us-east-2.on.aws/api/strategy", {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify(formData) 
+                        });
+
+                        if (!response.ok) {
+                            const errData = await response.json();
+                            throw new Error(errData.detail || "Backend API call failed");
+                        }
+
+                        const result = await response.json();
+                        responseData = result;
+                        
+                        setRationale(responseData);
+                    } catch (err) {
+                        setError("Failed to generate strategy. Please check your network or API Key.");
+                        console.error(err);
+                    } finally {
+                        setLoading(false);
+                    }
+                };
+
+                generateRationale();
+            }, []);
+
+            if (loading || !rationale) {
+                return (
+                    <div className="p-10 text-center flex flex-col items-center justify-center min-h-[400px]">
+                        <div className="animate-spin rounded-full h-16 w-16 border-4 border-t-cyan-500 border-gray-200 mb-6"></div>
+                        <h2 className="text-2xl font-bold text-gray-800">Analyzing Market Data...</h2>
+                        <p className="text-gray-500 mt-2 max-w-md">Synthesizing your financial, career, and lifestyle inputs into a cohesive strategy.</p>
+                        {!API_KEY && <p className="text-xs text-orange-500 mt-4 font-mono">Running in Demo Mode (Mock Data)</p>}
+                    </div>
+                );
+            }
+
+            if (error) {
+                return (
+                    <div className="p-10 text-center">
+                        <AlertTriangle className="w-16 h-16 mx-auto text-red-500 mb-4" />
+                        <h2 className="text-2xl font-bold text-gray-800">Analysis Failed</h2>
+                        <p className="text-gray-500 mt-2">{error}</p>
+                        <Button onClick={onBack} className="mt-6" variant="secondary">Go Back</Button>
+                    </div>
+                );
+            }
+
+            return (
+                <div className="p-6 sm:p-10">
+                    <h2 className="text-2xl font-bold text-teal-700 mb-6 flex items-center">
+                        <MapPin className="w-6 h-6 mr-2" /> Strategic Profile
+                    </h2>
+                    
+                    <div className="bg-cyan-50 border-l-4 border-cyan-500 p-6 rounded-r-xl mb-8 shadow-sm">
+                        <h3 className="text-xl font-bold text-gray-900 mb-1">{rationale.profileName}</h3>
+                        <p className="text-cyan-700 font-medium text-sm uppercase tracking-wide">{rationale.locationRecommendation}</p>
+                    </div>
+
+                    <div className="space-y-6">
+                        <div>
+                            <h4 className="font-semibold text-gray-900 mb-2 flex items-center"><DollarSign className="w-4 h-4 mr-2 text-teal-600"/> Financial Viability</h4>
+                            <p className="text-gray-600 leading-relaxed">{rationale.financialViability}</p>
+                        </div>
+                        <div>
+                            <h4 className="font-semibold text-gray-900 mb-2 flex items-center"><BrainCircuit className="w-4 h-4 mr-2 text-teal-600"/> Strategic Rationale</h4>
+                            <p className="text-gray-600 leading-relaxed">{rationale.rationale}</p>
+                        </div>
+                    </div>
+
+                    <div className="flex justify-between mt-10 pt-6 border-t border-gray-200">
+                        <Button onClick={onBack} variant="secondary">Back</Button>
+                        <Button onClick={onNext}>View Mock Listings <ArrowRight className="w-5 h-5 ml-2" /></Button>
+                    </div>
+                </div>
+            );
+        };
+
+        const RefinementScreen = ({ formData, onBack }) => {
+            // --- INVENTORY STATE ---
+            const [listings, setListings] = useState(MOCK_INVENTORY);
+            const [filters, setFilters] = useState({ pool: false, garage: false, hoaMax: 1000 });
+            const [chatInput, setChatInput] = useState('');
+            const [chatHistory, setChatHistory] = useState([
+                { sender: 'AI', text: "Welcome! I've curated these listings based on your strategy. You can use the toggles below or just tell me what you need (e.g., 'Show me houses with pools')." }
+            ]);
+
+            // --- FILTER LOGIC ---
+            useEffect(() => {
+                const filtered = MOCK_INVENTORY.filter(l => {
+                    if (filters.pool && !l.pool) return false;
+                    if (filters.garage && !l.garage) return false;
+                    if (l.hoa > filters.hoaMax) return false;
+                    return true;
+                });
+                setListings(filtered);
+            }, [filters]);
+
+            // --- CHAT LOGIC (SIMULATED) ---
+            const handleChat = () => {
+                if (!chatInput.trim()) return;
+                const input = chatInput.toLowerCase();
+                const newHistory = [...chatHistory, { sender: 'User', text: chatInput }];
+                
+                // Mock NLP
+                let response = "I've updated the filters.";
+                let newFilters = { ...filters };
+
+                if (input.includes('pool')) {
+                    newFilters.pool = true;
+                    response = "I've filtered for houses with pools.";
+                }
+                if (input.includes('garage')) {
+                    newFilters.garage = true;
+                    response = "Showing listings with garages.";
+                }
+                if (input.includes('hoa')) {
+                    newFilters.hoaMax = 300; // Mock logic
+                    response = "I've filtered for listings with HOA fees under $300.";
+                }
+                
+                // FHA Check
+                for (const word of FORBIDDEN_KEYWORDS) {
+                    if (input.includes(word)) {
+                        response = "I cannot process queries related to demographics or protected classes (FHA Policy).";
+                        newFilters = filters; // Revert changes
+                        break;
+                    }
+                }
+
+                setFilters(newFilters);
+                setChatHistory([...newHistory, { sender: 'AI', text: response }]);
+                setChatInput('');
+            };
+
+            return (
+                <div className="p-6 sm:p-10 flex flex-col h-full">
+                    <h2 className="text-2xl font-bold text-gray-900 mb-6 flex items-center">
+                        <Home className="w-6 h-6 mr-2 text-teal-600"/> Filtered Inventory
+                    </h2>
+                    
+                    {/* Filters Bar */}
+                    <div className="flex flex-wrap gap-3 mb-6 pb-6 border-b border-gray-200">
+                        <button onClick={() => setFilters(f => ({...f, pool: !f.pool}))} className={`px-4 py-2 rounded-full text-sm font-medium border ${filters.pool ? 'bg-cyan-100 border-cyan-500 text-cyan-800' : 'bg-white border-gray-300 text-gray-700'}`}>Has Pool</button>
+                        <button onClick={() => setFilters(f => ({...f, garage: !f.garage}))} className={`px-4 py-2 rounded-full text-sm font-medium border ${filters.garage ? 'bg-cyan-100 border-cyan-500 text-cyan-800' : 'bg-white border-gray-300 text-gray-700'}`}>Has Garage</button>
+                    </div>
+
+                    {/* Listings Grid */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                        {listings.length > 0 ? listings.map(l => (
+                            <div key={l.id} className="bg-white border border-gray-200 rounded-xl p-4 shadow-sm hover:shadow-md transition-shadow">
+                                <div className="flex justify-between items-start">
+                                    <h3 className="font-bold text-gray-900">{l.type}</h3>
+                                    <span className="bg-emerald-100 text-emerald-800 text-xs font-bold px-2 py-1 rounded">${l.price.toLocaleString()}</span>
+                                </div>
+                                <p className="text-sm text-gray-500 mb-2">{l.city}</p>
+                                <div className="text-xs text-gray-600 space-y-1">
+                                    <p>🛏️ {l.beds} Beds • 🛁 {l.baths} Baths • 📏 {l.sqft} sqft</p>
+                                    <p>{l.pool ? '✅ Pool' : '❌ No Pool'} • {l.garage ? '✅ Garage' : '❌ No Garage'} • HOA: ${l.hoa}</p>
+                                </div>
+                                <div className="mt-3 pt-3 border-t border-gray-100 flex justify-between items-center">
+                                    <span className="text-xs text-gray-500">Agent: {l.agent}</span>
+                                    <button onClick={() => alert(`Please search for ${l.agent} on LinkedIn to connect.`)} className="text-xs bg-teal-600 text-white px-3 py-1.5 rounded hover:bg-teal-700">Connect</button>
+                                </div>
+                            </div>
+                        )) : (
+                            <div className="md:col-span-2 text-center py-10 text-gray-500 border-2 border-dashed border-gray-200 rounded-xl">No listings match your filters.</div>
+                        )}
+                    </div>
+
+                    {/* Chat Interface */}
+                    <div className="bg-gray-50 rounded-xl border border-gray-200 p-4 mt-auto">
+                        <div className="h-32 overflow-y-auto mb-3 space-y-2">
+                            {chatHistory.map((msg, i) => (
+                                <div key={i} className={`text-sm p-2 rounded-lg max-w-[85%] ${msg.sender === 'User' ? 'bg-cyan-100 text-cyan-900 ml-auto' : 'bg-white border border-gray-200 mr-auto'}`}>
+                                    <strong>{msg.sender}:</strong> {msg.text}
+                                </div>
+                            ))}
+                        </div>
+                        <div className="flex gap-2">
+                            <input 
+                                type="text" 
+                                value={chatInput} 
+                                onChange={(e) => setChatInput(e.target.value)} 
+                                onKeyDown={(e) => e.key === 'Enter' && handleChat()}
+                                placeholder="Refine results (e.g., 'Show houses with pools')..." 
+                                className="flex-1 p-2 border border-gray-300 rounded-lg focus:ring-cyan-500 focus:border-cyan-500"
+                            />
+                            <button onClick={handleChat} className="bg-teal-600 text-white px-4 py-2 rounded-lg hover:bg-teal-700"><ArrowRight className="w-4 h-4" /></button>
+                        </div>
+                    </div>
+                    
+                    <div className="flex justify-start mt-6">
+                        <Button onClick={onBack} variant="secondary"><ArrowLeft className="w-5 h-5 mr-2" />Back to Strategy</Button>
+                    </div>
+                </div>
+            );
+        };
+
+        const App = () => {
+            const [currentStage, setCurrentStage] = useState(1);
+            const [legalAccepted, setLegalAccepted] = useState(false);
+            const [formData, setFormData] = useState({
+                primaryIncomeRange: '', creditScore: '', employmentFootprint: '', primaryCompany: '', primaryRole: '',
+                secondaryIncomeRange: '', secondaryEmploymentFootprint: '', secondaryCompany: '', secondaryRole: '',
+                propertyType: '', bedrooms: '', bathrooms: '', 
+                lowTaxPriority: false, lowHoaPriority: false, lowUtilitiesPriority: false, 
+                communityNeeds: '',
+            });
+
+            const handleChange = (field, value) => { setFormData(prev => ({ ...prev, [field]: value })); };
+            const memoizedHandleChange = React.useCallback(handleChange, []);
+
+            const renderStage = () => {
+                switch (currentStage) {
+                    case 1: return <WelcomeScreen onNext={() => setCurrentStage(2)} onAcceptLegal={() => setLegalAccepted(true)} legalAccepted={legalAccepted} />;
+                    case 2: return <FinancialInput formData={formData} handleChange={memoizedHandleChange} onBack={() => setCurrentStage(1)} onNext={() => setCurrentStage(3)} />;
+                    case 3: return <LifestyleInput formData={formData} handleChange={memoizedHandleChange} onBack={() => setCurrentStage(2)} onNext={() => setCurrentStage(4)} />;
+                    case 4: return <StrategicProfile formData={formData} onNext={() => setCurrentStage(5)} onBack={() => setCurrentStage(3)} />;
+                    case 5: return <RefinementScreen formData={formData} onBack={() => setCurrentStage(4)} />;
+                    default: return <WelcomeScreen />;
+                }
+            };
+
+            return (
+                <div className="font-sans bg-gray-50 min-h-screen flex items-center justify-center p-4">
+                    <style>{`@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap'); body { font-family: 'Inter', sans-serif; } .animate-fadeIn { animation: fadeIn 0.3s ease-out; } @keyframes fadeIn { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }`}</style>
+                    <div className="relative bg-white rounded-xl shadow-2xl w-full max-w-2xl mx-auto overflow-hidden border border-gray-200">
+                        <div className="p-4 bg-gray-50 border-b border-gray-200">
+                            <div className="flex items-center">
+                                <div className="flex-1"><h2 className="text-sm font-semibold text-teal-700">Homeowner Navigator</h2><p className="text-xs text-gray-500">Stage {currentStage} of 5</p></div>
+                                <div className="flex space-x-1.5">{[1, 2, 3, 4, 5].map(stage => (<div key={stage} className={`w-10 h-2 rounded-full transition-colors ${currentStage >= stage ? 'bg-cyan-500' : 'bg-gray-300'}`} title={`Stage ${stage}`}></div>))}</div>
+                            </div>
+                        </div>
+                        <div data-git="nudge" className="min-h-[600px] bg-white">{renderStage()}</div>
+                    </div>
+                </div>
+            );
+        };
+
+        ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+    </script>
+</body>
+</html>

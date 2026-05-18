@@ -1,0 +1,6 @@
+venv/
+node_modules/
+package/
+deployment.zip
+.env
+__pycache__/
