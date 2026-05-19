@@ -14,6 +14,17 @@ Real estate technology must be built with strict adherence to legal and ethical 
 
 ---
 
+## Project Description & Core Features
+Homebuyer AI is an interactive, data-driven single-page web application that converts complex financial and personal profiling into tailored housing recommendations. The platform features an intuitive multi-stage interface that abstracts the complexity of traditional real estate search filters into guided logical steps.
+
+### Strategic Profiling Flow
+* **Welcome & Regulatory Acknowledgement:** Ensures users understand the platform parameters and legal guidelines prior to data submission.
+* **Financial Assessment Engine:** Dynamically captures and evaluates financial parameters, profiling user backgrounds against target income ranges and credit tiers.
+* **Lifestyle & Preference Matrix:** Collects qualitative metrics including property type preferences, target bedroom/bathroom configurations, and critical community priorities.
+* **Automated Data Refinement:** Sanitizes, structures, and processes all parameters locally before routing data to the core computational layer to produce optimized matching results.
+
+---
+
 ## Business & Monetization Proposal
 To scale this tool sustainably, Homebuyer AI is structured around a freemium SaaS model designed to attract everyday buyers while offering deep value to serious investors.
 
