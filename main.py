@@ -2,11 +2,8 @@ from google import genai
 import os
 import json
 
-# Initialize Gemini Client
-client = genai.Client(api_key=os.environ.get("GEMINI_API_KEY"))
-
 def handler(event, context):
-    # 1. Handle browser preflight CORS handshake
+    # 1. Handle browser preflight CORS handshake (requires zero API credentials)
     cors_headers = {
         "Access-Control-Allow-Origin": "*",
         "Access-Control-Allow-Methods": "POST, OPTIONS",
@@ -21,9 +18,16 @@ def handler(event, context):
         }
 
     try:
-        # 2. Parse the incoming React body data
+        # 2. Lazy client initialization
+        api_key = os.environ.get("GEMINI_API_KEY")
+        if not api_key:
+            raise ValueError("GEMINI_API_KEY environment variable is missing.")
+            
+        client = genai.Client(api_key=api_key)
+
+        # 3. Parse incoming React body data
         body_str = event.get("body", "{}")
-        data = json.loads(body_str)
+        data = json.loads(body_str) if isinstance(body_str, str) else body_str
         
         prompt = f"""
         Act as a Senior Real Estate Strategist. Generate a strategy based on:
@@ -48,7 +52,6 @@ def handler(event, context):
             contents=prompt,
         )
         
-        # Clean potential markdown wrappers out of the AI response
         clean_text = response.text.strip().replace("```json", "").replace("```", "")
         result_json = json.loads(clean_text)
         
@@ -59,7 +62,6 @@ def handler(event, context):
         }
         
     except Exception as e:
-        # Graceful fallback so the frontend always receives valid JSON, never a 502
         fallback_response = {
             "profileName": "Strategy Verification Pending",
             "financialViability": f"Processing details: {str(e)}",
