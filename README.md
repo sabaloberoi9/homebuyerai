@@ -1,6 +1,5 @@
 # Homebuyer AI: Intelligent, Parameter-Driven Real Estate Discovery
 
-[Live Demo](YOUR_DEMO_LINK_HERE) | [Report an Issue](https://github.com/sabaloberoi9/homebuyerai/issues)
 
 ## The Problem
 The modern housing market moves faster than ever, yet buyers are forced to rely on manual, time-consuming research. New homebuyers often spend hundreds of hours filtering through listings, only to miss out on the best deals due to information overload and the limitations of human research. Furthermore, as remote work decentralizes where people can live, traditional zip-code-based searching is no longer sufficient.
